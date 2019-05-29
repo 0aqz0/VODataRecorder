@@ -3,8 +3,6 @@
 #include "time_stamp.pb.h"
 #include <thread>
 
-UDPReceiver* UDPReceiver::_instance = 0;
-
 namespace {
     std::thread* _thread = nullptr;
     const int VISION_PORT = 23333;
@@ -13,7 +11,7 @@ namespace {
     const int TIME_PORT = 12345;
 }
 
-UDPReceiver::UDPReceiver()
+UDPReceiver::UDPReceiver(QObject *parent) : QObject(parent), currentTime(0), recording(false)
 {
     receiver = new QUdpSocket();
     sender = new QUdpSocket();
@@ -34,12 +32,6 @@ UDPReceiver::~UDPReceiver(){
         file->close();
 }
 
-UDPReceiver* UDPReceiver::instance(){
-    if(_instance == 0)
-        _instance = new UDPReceiver();
-    return _instance;
-}
-
 void UDPReceiver::readDatagrams(){
     // open file
     QDateTime time = QDateTime::currentDateTime();
@@ -55,7 +47,7 @@ void UDPReceiver::readDatagrams(){
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
         // current time
         QDateTime UTC(QDateTime::currentDateTimeUtc());
-        qint64 currentTime = UTC.toMSecsSinceEpoch();
+        currentTime = UTC.toMSecsSinceEpoch();
 //        QDateTime local(UTC.toLocalTime());
 //        qDebug() << "UTC time is:" << UTC.toMSecsSinceEpoch();
 //        qDebug() << "Local time is:" << local.toString();
@@ -68,6 +60,7 @@ void UDPReceiver::readDatagrams(){
         msg.SerializeToArray(msg_data.data(), msg_data.size());
         sender->writeDatagram(msg_data, msg_size, TIME_ADDRESS, TIME_PORT);
 
+        recording = false;
         while(receiver->hasPendingDatagrams()){
             QByteArray datagram;
             datagram.resize(receiver->pendingDatagramSize());
@@ -88,6 +81,7 @@ void UDPReceiver::readDatagrams(){
 //            for (int i = 0; i < yellow_size; i++){
 //                int robot_id = vision.robots_yellow(i).robot_id();
 //            }
+            recording = true;
         }
     }
 }

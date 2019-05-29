@@ -5,10 +5,9 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-
     QGuiApplication app(argc, argv);
 
-    UDPReceiver::instance();
+    qmlRegisterType<UDPReceiver>("Z", 1, 0, "UDPReceiver");
 
     QQmlApplicationEngine engine;
     engine.load(QUrl(QStringLiteral("qrc:/main.qml")));

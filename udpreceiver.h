@@ -2,17 +2,20 @@
 #define UDPRECEIVER_H
 #include <QtNetwork>
 
-class UDPReceiver
+class UDPReceiver : public QObject
 {
+    Q_OBJECT
 public:
-    static UDPReceiver* instance();
-    void readDatagrams();
-private:
-    UDPReceiver();
+    UDPReceiver(QObject *parent = nullptr);
     ~UDPReceiver();
-    static UDPReceiver* _instance;
+    void readDatagrams();
+    Q_INVOKABLE qint64 time(){ return currentTime; }
+    Q_INVOKABLE bool isRecording() { return recording; }
+private:
     QUdpSocket *receiver;
     QUdpSocket *sender;
+    qint64 currentTime;
+    bool recording;
 };
 
 
