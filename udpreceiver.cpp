@@ -9,6 +9,7 @@ namespace {
     QFile* file = nullptr;
     const QHostAddress TIME_ADDRESS = QHostAddress("233.233.233.233");
     const int TIME_PORT = 12345;
+    const int NO_RECORD_BUFFER = 20;
 }
 
 UDPReceiver::UDPReceiver(QObject *parent) : QObject(parent), currentTime(0), recording(false)
@@ -34,6 +35,7 @@ UDPReceiver::~UDPReceiver(){
 
 void UDPReceiver::readDatagrams(){
     // open file
+    static int noRecord = NO_RECORD_BUFFER;
     QDateTime time = QDateTime::currentDateTime();
     QString timeStr = time.toString("yyyy-MM-dd  hh-mm-ss");
     QString filename = QString("../Data/") + timeStr + QString(".txt");
@@ -60,7 +62,9 @@ void UDPReceiver::readDatagrams(){
         msg.SerializeToArray(msg_data.data(), msg_data.size());
         sender->writeDatagram(msg_data, msg_size, TIME_ADDRESS, TIME_PORT);
 
-        recording = false;
+        noRecord = noRecord < NO_RECORD_BUFFER ? noRecord + 1 : noRecord;
+        if(noRecord >= NO_RECORD_BUFFER) recording = false;
+        else recording = true;
         while(receiver->hasPendingDatagrams()){
             QByteArray datagram;
             datagram.resize(receiver->pendingDatagramSize());
@@ -73,15 +77,16 @@ void UDPReceiver::readDatagrams(){
             int blue_size = vision.robots_blue_size();
             for (int i = 0; i < blue_size; i++){
                 int robot_id = vision.robots_blue(i).robot_id();
+                if(robot_id!=0) continue;
                 QString content = QString("%1 %2 %3 %4\n").arg(currentTime).arg(robot_id).arg(vision.robots_blue(i).x()/10).arg(vision.robots_blue(i).y()/10);
                 qDebug() << file->write(content.toLatin1(), content.length());
+                noRecord = 0;
             }
             // Read yellow robot info
 //            int yellow_size = vision.robots_yellow_size();
 //            for (int i = 0; i < yellow_size; i++){
 //                int robot_id = vision.robots_yellow(i).robot_id();
 //            }
-            recording = true;
         }
     }
 }
